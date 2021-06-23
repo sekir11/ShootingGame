@@ -27,6 +27,9 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
     private final Image mys;
     private final Image his;
     private final Image[] enemy = new Image[Enemy.ENEMY_KIND_AMOUNT];
+    private final Image background1 = getToolkit().getImage("img/background-1-2.png");
+    private final Image background2 = getToolkit().getImage("img/background-2-2.png");
+    private final Image background3 = getToolkit().getImage("img/background-3-2.png");
 
     public static final int FRAME_W = 800;      //フレームの横幅
     public static final int FRAME_H = 600;      //フレームの縦幅
@@ -46,7 +49,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
         enemy[1] = getToolkit().getImage("img/enemy2.png");
         enemy[2] = getToolkit().getImage("img/enemy3.png");
         mys = getToolkit().getImage("img/bullet.png");
-        his = getToolkit().getImage("img/bullet.png");
+        his = getToolkit().getImage("img/enemyBullet.png");
 
         //初期状態を整える
         setCondition();
@@ -71,11 +74,21 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
     }
 
     public void aniPaint(Graphics g){
+        if (stage.getStage() == 1) {
+            g.drawImage(background1, 0, 0, FRAME_W, FRAME_H,null);
+        } else if (stage.getStage() == 2) {
+            g.drawImage(background2, 0, 0, FRAME_W, FRAME_H,null);
+        } else if (stage.getStage() == 3) {
+            g.drawImage(background3, 0, 0, FRAME_W, FRAME_H,null);
+        }
         g.setColor(Color.WHITE);
 
         if(mode.getMode() == 0){
             g.drawString("EnterKey を押してゲームをスタートしてください。",80,250);
             g.setFont(new Font("Serif",Font.BOLD,30));
+        } else if(mode.getMode() == 4) {
+            g.drawString("ゲームオーバーです。",60,170);
+            g.drawString("Enter でタイトルに戻ります。",90,210);
         } else {
 
             player.drawImage(g, this);
@@ -84,6 +97,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             EnemyShell.drawImage(g, this, enemyShellList);
 
             //敵の残数を表示
+
             g.drawString("ステージ："+ stage.getStage() + " / " + stage.maxStage, 10,60);
             g.drawString("敵残数："+ enemyCount, 230,60);
             g.drawString("残りライフ："+ player.getLife(), 400,60);
@@ -96,10 +110,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
                 g.drawString("ゲームクリアです！", 50, 170);
                 g.drawString("Enter でタイトルに戻ります。",80,210);
             }
-            else if(mode.getMode() == 4){
-                g.drawString("ゲームオーバーです。",60,170);
-                g.drawString("Enter でタイトルに戻ります。",90,210);
-            }
+
         }
 
     }

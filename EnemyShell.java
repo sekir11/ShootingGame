@@ -6,12 +6,12 @@ import java.util.List;
 class EnemyShell extends Agent {
 
     public EnemyShell(Image image, int hx, int hy) {
-        super(hx, hy, 2, 14, true, image);
+        super(hx, hy, 10, 10, true, image);
     }
 
     public static void drawImage(Graphics g, GameFrame gameFrame, List<EnemyShell> enemyShells) {
         for(EnemyShell enemyShell: enemyShells){
-            g.drawImage(enemyShell.getImage(), enemyShell.getX(), enemyShell.getY(), 10, 10,  gameFrame);
+            g.drawImage(enemyShell.getImage(), enemyShell.getX(), enemyShell.getY(), 20, 20,  gameFrame);
         }
     }
 

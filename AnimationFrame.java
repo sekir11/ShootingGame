@@ -31,7 +31,7 @@ abstract class AnimationFrame extends Frame {
     abstract public void aniPaint(Graphics g);  //これをオーバライドして表示する
 
     public void paint(Graphics g){
-        offg.setColor(Color.BLACK);         //白にして
+        offg.setColor(Color.BLACK);
         offg.fillRect(0,0,frame_w,frame_h); //四角形で塗りつぶし
         offg.setColor(Color.BLACK);         //黒に戻して
         aniPaint(offg);                     //aniPaintを描画
