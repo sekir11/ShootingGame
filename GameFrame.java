@@ -2,50 +2,39 @@ import java.awt.*;          //Frame
 import java.awt.event.*;    //WindowListener,MouseLisnter
 import java.util.ArrayList;
 
-//1画面のちらつきをなくすAnimationFrameを継承する
 public class GameFrame extends AnimationFrame implements WindowListener,KeyListener,Runnable{
 
-    //ゲームモード。0:タイトル 1:ゲーム中 2:クリア 3:ゲームオーバー
-    GameMode mode = new GameMode();
+    //ゲームモード。0:タイトル 1:ゲーム中 2:ステージクリア 3:クリア 4:ゲームオーバー
+    private final GameMode mode = new GameMode();
 
-    Stage stage = new Stage();
+    private final Stage stage = new Stage();
 
     //自機を表現するオブジェクト
-    Player player = new Player(getToolkit().getImage("img/player.png"));
+    private final Player player = new Player(getToolkit().getImage("img/player.png"));
 
     //敵を表現するオブジェクト
-    Enemy[][] enemies = new Enemy[Enemy.ENEMY_HOR_AMOUNT][Enemy.ENEMY_VER_AMOUNT];
-
-    //自分の弾丸を表現するオブジェクト
-    PlayerShell playerShell;
+    private Enemy[][] enemies = new Enemy[Enemy.ENEMY_HOR_AMOUNT][Enemy.ENEMY_VER_AMOUNT];
 
     //自分の弾丸を表現するオブジェクトの配列
-    java.util.List<PlayerShell> playerShellList = new ArrayList();
-
-    //敵の弾丸を表現するオブジェクト
-    EnemyShell enemyShell;
+    private final java.util.List<PlayerShell> playerShellList = new ArrayList();
 
     //敵の弾丸を表現するオブジェクトの配列
-    java.util.List<EnemyShell> enemyShellList = new ArrayList();
-
-    //画面上で生きている敵の弾丸の数
-    int himShellNum;
+    private final java.util.List<EnemyShell> enemyShellList = new ArrayList();
 
     //敵の残数
-    int enemyNokori;
+    public static int enemyCount;
 
-    //画像。敵などのコンストラクタに渡す
-    Image mys,his;
-    Image[] enemy = new Image[Enemy.ENEMY_KIND_AMOUNT];
+    private final Image mys;
+    private final Image his;
+    private final Image[] enemy = new Image[Enemy.ENEMY_KIND_AMOUNT];
 
-    //他のクラスから参照できるよう定数で宣言
     public static final int FRAME_W = 800;      //フレームの横幅
     public static final int FRAME_H = 600;      //フレームの縦幅
 
-    private final Thread thread = new Thread(this);   //Threadオブジェクトを宣言
+    private final Thread thread = new Thread(this);
 
     public GameFrame(String title){
-        //2スーパークラスにタイトルと画面の幅、高さを渡す
+
         super(title, FRAME_W, FRAME_H);
 
         addKeyListener(this);
@@ -62,10 +51,9 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
         //初期状態を整える
         setCondition();
 
-        thread.start();             //run()を実行する
+        thread.start();
     }
 
-    //背景ちらつき防止
     public void update(Graphics g){
         paint(g);
     }
@@ -77,16 +65,11 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
 
         //変数初期化
         mode.resetGameMode();
-        player.resetLife();
-        enemyNokori = Enemy.ENEMY_HOR_AMOUNT * Enemy.ENEMY_VER_AMOUNT;
-        himShellNum = 0;
-
-        //弾丸を全て削除
+        enemyCount = Enemy.ENEMY_HOR_AMOUNT * Enemy.ENEMY_VER_AMOUNT;
         playerShellList.clear();
         enemyShellList.clear();
     }
 
-    //3paintの代わりにaniPaintを使う
     public void aniPaint(Graphics g){
         g.setColor(Color.WHITE);
 
@@ -102,7 +85,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
 
             //敵の残数を表示
             g.drawString("ステージ："+ stage.getStage() + " / " + stage.maxStage, 10,60);
-            g.drawString("敵残数："+ enemyNokori, 230,60);
+            g.drawString("敵残数："+ enemyCount, 230,60);
             g.drawString("残りライフ："+ player.getLife(), 400,60);
 
             if(mode.getMode() == 2){
@@ -127,9 +110,9 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             
             repaint();
 
-            //ゲーム中のときだけ処理
-            if (mode.getMode() == 1)
+            if (mode.getMode() == 1) {
                 playingNow();
+            }
             
             try {
                 Thread.sleep(30);   //30m秒とめる
@@ -165,6 +148,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
                   mode.setMode(1);
                 } else if (mode.getMode() == 3 || mode.getMode() == 4) {
                     mode.resetGameMode();
+                    player.resetLife();
                     stage.resetStage();
                     setCondition();
                 }
@@ -198,85 +182,24 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
                 enemies[i][j].addX(enemies[i][j].changeMoveDirect());
 
 
-        //自分の弾丸が動く
-        for(int i = 0; i < playerShellList.size(); i++){
-            playerShell = playerShellList.get(i);
-            playerShell.addY(-10);
+        PlayerShell.playersShellMove(playerShellList, enemies);
 
-            //弾丸が敵に当たれば、敵＆弾丸死亡
-            for(int j = 0; j < Enemy.ENEMY_HOR_AMOUNT; j++){
-                for(int k = 0; k < Enemy.ENEMY_VER_AMOUNT; k++){
-                    if(playerShell.getX() + playerShell.getSizeX() >= enemies[j][k].getX()
-                            && playerShell.getX() <= (enemies[j][k].getX() + enemies[j][k].getSizeX())
-                            && playerShell.getY() >= (enemies[j][k].getY() - playerShell.getSizeY())
-                            && playerShell.getY() <= (enemies[j][k].getY() + enemies[j][k].getSizeY())
-                            && enemies[j][k].getAlive()){
-                        enemies[j][k].setAlive(false);
-                        playerShell.setAlive(false);
-                        enemyNokori--;
-                    }
-                }
-            }
-
-            //敵がいなくなったらクリア
-            if(enemyNokori == 0) {
-                if (stage.checkEnd()) {
-                    mode.setMode(3);
-                } else {
-                    mode.setMode(2);
-                }
-
-            }
-
-            //弾丸が外に出たら弾丸死亡
-            if(playerShell.getY() + playerShell.getSizeY() < 0)
-                playerShell.setAlive(false);
-
-            //死亡した弾丸を配列から削除
-            if(!playerShell.getAlive()) {
-                playerShellList.remove(i);
-                i--;
-            }
-        }
+        mode.checkComplete(stage);
 
         //敵が弾丸を撃つ
         for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++){
             for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++){
-                if(Enemy.ENEMY_SHOT > (int)(100 * Math.random())
-                        && enemies[i][j].getAlive()){
+                if(Enemy.ENEMY_SHOT > (int)(100 * Math.random()) && enemies[i][j].getAlive()){
                     enemyShellList.add(new EnemyShell(his, enemies[i][j].getX()
                             + (enemies[i][j].getSizeX() / 2), enemies[i][j].getY() + 15));
-                    himShellNum++;
                 }
             }
         }
 
-        //敵の弾丸が動く
-        for(int i = 0; i < himShellNum; i++){
-            enemyShell = enemyShellList.get(i);
-            enemyShell.addY(2);
+        EnemyShell.enemyShellsMove(enemyShellList, player);
 
-            //弾丸が自分に当たったらゲームオーバー
-            //少しくらい掠っても死なないように判定は甘めに調整
-            if(enemyShell.getX() >= (player.getX() - enemyShell.getSizeX())+4
-                    && enemyShell.getX() <= (player.getX() + player.getSizeX())-4
-                    && enemyShell.getY() >= (player.getY() - enemyShell.getSizeY())+10
-                    && enemyShell.getY() <= (player.getY() + player.getSizeY()-2)){
-                player.decreaseLife();
-                enemyShell.setX(10000);
-                enemyShell.setY(10000);
-                if (player.getLife() == 0) {
-                    mode.setMode(4);
-                }
-            }
+        mode.checkGameOver(player);
 
-            //弾丸が画面外に出たら、配列から削除
-            if(enemyShell.getY() > 550){
-                enemyShellList.remove(i);
-                himShellNum--;
-                i--;
-            }
-        }
         repaint();
     }
 }
