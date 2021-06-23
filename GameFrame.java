@@ -22,9 +22,6 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
     //自分の弾丸を表現するオブジェクトの配列
     java.util.List<PlayerShell> playerShellList = new ArrayList();
 
-    //画面上で生きている自分の弾丸の数
-    int myShellNum;
-
     //敵の弾丸を表現するオブジェクト
     EnemyShell enemyShell;
 
@@ -36,9 +33,6 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
 
     //敵の残数
     int enemyNokori;
-
-    //敵の動き方。1：右に動く 0:左に動く
-    int eneMoveRight;
 
     //画像。敵などのコンストラクタに渡す
     Image mys,his;
@@ -82,11 +76,9 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
         enemies = Enemy.generateEnemies(enemy);
 
         //変数初期化
-        eneMoveRight = 1;
         mode.resetGameMode();
         player.resetLife();
         enemyNokori = Enemy.ENEMY_HOR_AMOUNT * Enemy.ENEMY_VER_AMOUNT;
-        myShellNum = 0;
         himShellNum = 0;
 
         //弾丸を全て削除
@@ -173,24 +165,24 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
                   mode.setMode(1);
                 } else if (mode.getMode() == 3 || mode.getMode() == 4) {
                     mode.resetGameMode();
+                    stage.resetStage();
                     setCondition();
                 }
             }
             if (mode.getMode() == 1) {
 
                 int cd = e.getKeyCode();    //押されたキーを取得
-                if (cd == KeyEvent.VK_UP) {
-                    player.addY(-10);
-                } else if (cd == KeyEvent.VK_DOWN) {
-                    player.addY(10);
-                } else if (cd == KeyEvent.VK_RIGHT) {
-                    player.addX(10);
+                if (cd == KeyEvent.VK_RIGHT) {
+                    if (player.getX() <= FRAME_W - 50) {
+                        player.addX(10);
+                    }
                 } else if (cd == KeyEvent.VK_LEFT) {
-                    player.addX(-10);
+                    if (player.getX() >= 0) {
+                        player.addX(-10);
+                    }
                 } else if (cd == KeyEvent.VK_SPACE) {
                     playerShellList.add(new PlayerShell(mys, player.getX()
                             + (player.getSizeX() / 2) - 1, player.getY() - 15));
-                    myShellNum++;
                 }
             }
         }
@@ -199,18 +191,15 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
 
     //ゲーム中の処理
     void playingNow() {
-        //敵の群れの移動制御
-        if(enemies[0][0].getX() < 10 || enemies[0][0].getX() > 50)
-            eneMoveRight = -1 * eneMoveRight;
 
         //敵の群れが動く
         for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++)
             for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++)
-                enemies[i][j].addX(eneMoveRight);
+                enemies[i][j].addX(enemies[i][j].changeMoveDirect());
 
 
         //自分の弾丸が動く
-        for(int i = 0; i < myShellNum; i++){
+        for(int i = 0; i < playerShellList.size(); i++){
             playerShell = playerShellList.get(i);
             playerShell.addY(-10);
 
@@ -246,7 +235,6 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             //死亡した弾丸を配列から削除
             if(!playerShell.getAlive()) {
                 playerShellList.remove(i);
-                myShellNum--;
                 i--;
             }
         }

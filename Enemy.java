@@ -12,6 +12,8 @@ class Enemy extends Agent {
     //敵が１ループにおいて弾丸を撃つ確率
     public static final int ENEMY_SHOT = 1;
 
+    private int moveDirect = 1;
+
     public Enemy(Image image, int ex, int ey) {
         super(ex, ey, 30, 30, true, image);
     }
@@ -57,5 +59,18 @@ class Enemy extends Agent {
                 return images[2];
             }
         }
+    }
+
+    public int changeMoveDirect() {
+        if (getX() >= GameFrame.FRAME_W - 50 || getX() < 0) {
+            return moveDirect *= -1;
+        } else {
+            if (Math.random() * 100 % 100 > 90) {
+                return moveDirect *= -1;
+            } else {
+                return moveDirect;
+            }
+        }
+
     }
 }
