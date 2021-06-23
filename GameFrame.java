@@ -8,14 +8,13 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
     //ゲームモード。0:タイトル 1:ゲーム中 2:クリア 3:ゲームオーバー
     GameMode mode = new GameMode();
 
-    int stage = 1;
-    int maxStage = 3;
+    Stage stage = new Stage();
 
     //自機を表現するオブジェクト
-    Player player;
+    Player player = new Player(getToolkit().getImage("img/player.png"));
 
     //敵を表現するオブジェクト
-    Enemy enemy[][];
+    Enemy[][] enemies = new Enemy[Enemy.ENEMY_HOR_AMOUNT][Enemy.ENEMY_VER_AMOUNT];
 
     //自分の弾丸を表現するオブジェクト
     PlayerShell ms;
@@ -65,15 +64,9 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
         myshells = new ArrayList();
         himshells = new ArrayList();
 
-        jbn = getToolkit().getImage("img/player.png");
         ebn = getToolkit().getImage("img/enemy1.png");
         mys = getToolkit().getImage("img/bullet.png");
         his = getToolkit().getImage("img/bullet.png");
-
-        //自分のインスタンスを生成。aliveを使わない故、最初に１回呼ぶだけ
-        player = new Player(jbn);
-
-        enemy = new Enemy[Enemy.ENEMY_HOR_AMOUNT][Enemy.ENEMY_VER_AMOUNT];
 
         //初期状態を整える
         setCondition();
@@ -92,12 +85,13 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
         //敵のインスタンスを生成
         for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++)
             for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++)
-                enemy[i][j] = new Enemy(ebn, (i*60)+(j*10)+25, (j*40)+80);
+                enemies[i][j] = new Enemy(ebn, (i*60)+(j*10)+25, (j*40)+80);
 
         //変数初期化
         eneMoveRight = true;
         keyAdmit = true;
         mode.resetGameMode();
+        player.resetLife();
         enemyNokori = Enemy.ENEMY_HOR_AMOUNT * Enemy.ENEMY_VER_AMOUNT;
         myShellNum = 0;
         himShellNum = 0;
@@ -121,9 +115,9 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             //敵の群れを描く
             for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++){
                 for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++){
-                    if(enemy[i][j].getAlive())
-                        g.drawImage(enemy[i][j].getImage(),
-                                enemy[i][j].getX(), enemy[i][j].getY(), 50, 50, this);
+                    if(enemies[i][j].getAlive())
+                        g.drawImage(enemies[i][j].getImage(),
+                                enemies[i][j].getX(), enemies[i][j].getY(), 50, 50, this);
                 }
             }
 
@@ -140,7 +134,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             }
 
             //敵の残数を表示
-            g.drawString("ステージ："+ stage + " / " + maxStage, 10,60);
+            g.drawString("ステージ："+ stage.getStage() + " / " + stage.maxStage, 10,60);
             g.drawString("敵残数："+ enemyNokori, 230,60);
             g.drawString("残りライフ："+ player.getLife(), 400,60);
 
@@ -197,7 +191,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
                 if (mode.getMode() == 0) {
                     mode.setMode(1);
                 } else if (mode.getMode() == 2) {
-                  stage++;
+                    stage.addStage();
                   setCondition();
                   mode.setMode(1);
                 } else if (mode.getMode() == 3 || mode.getMode() == 4) {
@@ -230,18 +224,18 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
     void playingNow()
     {
         //敵の群れの移動制御
-        if(enemy[0][0].getX() < 10 || enemy[0][0].getX() > 50)
+        if(enemies[0][0].getX() < 10 || enemies[0][0].getX() > 50)
             eneMoveRight = !eneMoveRight;
 
         //敵の群れが動く
         if(eneMoveRight == true){
             for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++)
                 for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++)
-                    enemy[i][j].addX(1);
+                    enemies[i][j].addX(1);
         }else{
             for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++)
                 for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++)
-                    enemy[i][j].addX(-1);
+                    enemies[i][j].addX(-1);
         }
 
         //自分の弾丸が動く
@@ -252,12 +246,12 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             //弾丸が敵に当たれば、敵＆弾丸死亡
             for(int j = 0; j < Enemy.ENEMY_HOR_AMOUNT; j++){
                 for(int k = 0; k < Enemy.ENEMY_VER_AMOUNT; k++){
-                    if(ms.getX() + ms.getSizeX() >= enemy[j][k].getX()
-                            && ms.getX() <= (enemy[j][k].getX() + enemy[j][k].getSizeX())
-                            && ms.getY() >= (enemy[j][k].getY() - ms.getSizeY())
-                            && ms.getY() <= (enemy[j][k].getY() + enemy[j][k].getSizeY())
-                            && enemy[j][k].getAlive()){
-                        enemy[j][k].setAlive(false);
+                    if(ms.getX() + ms.getSizeX() >= enemies[j][k].getX()
+                            && ms.getX() <= (enemies[j][k].getX() + enemies[j][k].getSizeX())
+                            && ms.getY() >= (enemies[j][k].getY() - ms.getSizeY())
+                            && ms.getY() <= (enemies[j][k].getY() + enemies[j][k].getSizeY())
+                            && enemies[j][k].getAlive()){
+                        enemies[j][k].setAlive(false);
                         ms.setAlive(false);
                         enemyNokori--;
                     }
@@ -266,7 +260,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
 
             //敵がいなくなったらクリア
             if(enemyNokori == 0) {
-                if (stage == maxStage) {
+                if (stage.checkEnd()) {
                     mode.setMode(3);
                 } else {
                     mode.setMode(2);
@@ -290,9 +284,9 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
         for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++){
             for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++){
                 if(Enemy.ENEMY_SHOT > (int)(100 * Math.random())
-                        && enemy[i][j].getAlive()){
-                    himshells.add(new EnemyShell(his, enemy[i][j].getX()
-                            + (enemy[i][j].getSizeX() / 2), enemy[i][j].getY() + 15));
+                        && enemies[i][j].getAlive()){
+                    himshells.add(new EnemyShell(his, enemies[i][j].getX()
+                            + (enemies[i][j].getSizeX() / 2), enemies[i][j].getY() + 15));
                     himShellNum++;
                 }
             }
