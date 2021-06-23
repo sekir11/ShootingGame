@@ -3,8 +3,8 @@ import java.awt.*;
 /**
  * 画面上の動くものを表す抽象クラス
  */
-
 public abstract class Agent {
+
     //自分の位置
     private int x,y;
 

@@ -19,13 +19,13 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
     final int ENEMY_SHOT = 1;
 
     //自機を表現するオブジェクト
-    Jibun jibun;
+    Player player;
 
     //敵を表現するオブジェクト
     Enemy enemy[][];
 
     //自分の弾丸を表現するオブジェクト
-    MyShell ms;
+    PlayerShell ms;
 
     //自分の弾丸を表現するオブジェクトの配列
     ArrayList myshells;
@@ -34,7 +34,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
     int myShellNum;
 
     //敵の弾丸を表現するオブジェクト
-    HimShell hs;
+    EnemyShell hs;
 
     //敵の弾丸を表現するオブジェクトの配列
     ArrayList himshells;
@@ -54,9 +54,6 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
     //画像。自機や敵などのコンストラクタに渡す
     Image jbn,ebn,mys,his;
 
-    //ライフ
-    int life;
-
     //他のクラスから参照できるよう定数で宣言
     public static final int FRAME_W = 800;      //フレームの横幅
     public static final int FRAME_H = 600;      //フレームの縦幅
@@ -65,11 +62,11 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
 
     public GameFrame(String title){
         //2スーパークラスにタイトルと画面の幅、高さを渡す
-        super(title,FRAME_W,FRAME_H);
+        super(title, FRAME_W, FRAME_H);
 
         addKeyListener(this);
 
-        setSize(FRAME_W,FRAME_H);
+        setSize(FRAME_W, FRAME_H);
         setVisible(true);
 
         myshells = new ArrayList();
@@ -81,7 +78,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
         his = getToolkit().getImage("img/bullet.png");
 
         //自分のインスタンスを生成。aliveを使わない故、最初に１回呼ぶだけ
-        jibun = new Jibun(jbn);
+        player = new Player(jbn);
 
         enemy = new Enemy[ENEMY_HOR_AMOUNT][ENEMY_VER_AMOUNT];
 
@@ -111,7 +108,6 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
         enemyNokori = ENEMY_HOR_AMOUNT * ENEMY_VER_AMOUNT;
         myShellNum = 0;
         himShellNum = 0;
-        life = 5;
 
         //弾丸を全て削除
         myshells.clear();
@@ -127,7 +123,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             g.setFont(new Font("Serif",Font.BOLD,30));
         } else {
             //自分を描く
-            g.drawImage(jibun.getImage(), jibun.getX(), jibun.getY(), 50, 50, this);
+            g.drawImage(player.getImage(), player.getX(), player.getY(), 50, 50, this);
 
             //敵の群れを描く
             for(int i = 0; i < ENEMY_HOR_AMOUNT; i++){
@@ -140,20 +136,20 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
 
             //自分の弾丸を描く
             for(int i = 0; i < myShellNum; i++){
-                ms = (MyShell)myshells.get(i);
+                ms = (PlayerShell)myshells.get(i);
                 g.drawImage(ms.getImage(), ms.getX(), ms.getY(), 10, 10, this);
             }
 
             //敵の弾丸を描く
             for(int i = 0; i < himShellNum; i++){
-                hs = (HimShell)himshells.get(i);
+                hs = (EnemyShell)himshells.get(i);
                 g.drawImage(hs.getImage(), hs.getX(), hs.getY(), 10, 10,  this);
             }
 
             //敵の残数を表示
             g.drawString("ステージ："+ stage + " / " + maxStage, 10,60);
             g.drawString("敵残数："+ enemyNokori, 230,60);
-            g.drawString("残りライフ："+ life, 400,60);
+            g.drawString("残りライフ："+ player.getLife(), 400,60);
 
             if(mode == 2){
                 g.drawString("ゲームクリアです！", 50, 170);
@@ -219,18 +215,17 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             if (mode == 1) {
 
                 int cd = e.getKeyCode();    //押されたキーを取得
-                //System.out.println(cd);
                 if (cd == KeyEvent.VK_UP) {
-                    jibun.addY(-10);
+                    player.addY(-10);
                 } else if (cd == KeyEvent.VK_DOWN) {
-                    jibun.addY(10);
+                    player.addY(10);
                 } else if (cd == KeyEvent.VK_RIGHT) {
-                    jibun.addX(10);
+                    player.addX(10);
                 } else if (cd == KeyEvent.VK_LEFT) {
-                    jibun.addX(-10);
+                    player.addX(-10);
                 } else if (cd == KeyEvent.VK_SPACE) {
-                    myshells.add(new MyShell(mys, jibun.getX()
-                            + (jibun.getSizeX() / 2) - 1, jibun.getY() - 15));
+                    myshells.add(new PlayerShell(mys, player.getX()
+                            + (player.getSizeX() / 2) - 1, player.getY() - 15));
                     myShellNum++;
                 }
             }
@@ -258,7 +253,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
 
         //自分の弾丸が動く
         for(int i = 0; i < myShellNum; i++){
-            ms = (MyShell)myshells.get(i);
+            ms = (PlayerShell)myshells.get(i);
             ms.addY(-10);
 
             //弾丸が敵に当たれば、敵＆弾丸死亡
@@ -303,7 +298,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             for(int j = 0; j < ENEMY_VER_AMOUNT; j++){
                 if(ENEMY_SHOT > (int)(100 * Math.random())
                         && enemy[i][j].getAlive()){
-                    himshells.add(new HimShell(his, enemy[i][j].getX()
+                    himshells.add(new EnemyShell(his, enemy[i][j].getX()
                             + (enemy[i][j].getSizeX() / 2), enemy[i][j].getY() + 15));
                     himShellNum++;
                 }
@@ -312,19 +307,19 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
 
         //敵の弾丸が動く
         for(int i = 0; i < himShellNum; i++){
-            hs = (HimShell)himshells.get(i);
+            hs = (EnemyShell)himshells.get(i);
             hs.addY(2);
 
             //弾丸が自分に当たったらゲームオーバー
             //少しくらい掠っても死なないように判定は甘めに調整
-            if(hs.getX() >= (jibun.getX() - hs.getSizeX())+4
-                    && hs.getX() <= (jibun.getX() + jibun.getSizeX())-4
-                    && hs.getY() >= (jibun.getY() - hs.getSizeY())+10
-                    && hs.getY() <= (jibun.getY() + jibun.getSizeY()-2)){
-                life--;
+            if(hs.getX() >= (player.getX() - hs.getSizeX())+4
+                    && hs.getX() <= (player.getX() + player.getSizeX())-4
+                    && hs.getY() >= (player.getY() - hs.getSizeY())+10
+                    && hs.getY() <= (player.getY() + player.getSizeY()-2)){
+                player.decreaseLife();
                 hs.setX(10000);
                 hs.setY(10000);
-                if (life == 0) {
+                if (player.getLife() == 0) {
                     mode = 4;
                 }
             }
