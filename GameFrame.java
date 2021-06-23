@@ -17,19 +17,19 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
     Enemy[][] enemies = new Enemy[Enemy.ENEMY_HOR_AMOUNT][Enemy.ENEMY_VER_AMOUNT];
 
     //自分の弾丸を表現するオブジェクト
-    PlayerShell ms;
+    PlayerShell playerShell;
 
     //自分の弾丸を表現するオブジェクトの配列
-    ArrayList myshells;
+    java.util.List<PlayerShell> playerShellList = new ArrayList();
 
     //画面上で生きている自分の弾丸の数
     int myShellNum;
 
     //敵の弾丸を表現するオブジェクト
-    EnemyShell hs;
+    EnemyShell enemyShell;
 
     //敵の弾丸を表現するオブジェクトの配列
-    ArrayList himshells;
+    java.util.List<EnemyShell> enemyShellList = new ArrayList();
 
     //画面上で生きている敵の弾丸の数
     int himShellNum;
@@ -37,20 +37,18 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
     //敵の残数
     int enemyNokori;
 
-    //キー入力は１ループに１回だけにする。 true:許可 false:だめ
-    boolean keyAdmit;
+    //敵の動き方。1：右に動く 0:左に動く
+    int eneMoveRight;
 
-    //敵の動き方。true：右に動く false:左に動く
-    boolean eneMoveRight;
-
-    //画像。自機や敵などのコンストラクタに渡す
-    Image jbn,ebn,mys,his;
+    //画像。敵などのコンストラクタに渡す
+    Image mys,his;
+    Image[] enemy = new Image[Enemy.ENEMY_KIND_AMOUNT];
 
     //他のクラスから参照できるよう定数で宣言
     public static final int FRAME_W = 800;      //フレームの横幅
     public static final int FRAME_H = 600;      //フレームの縦幅
 
-    private Thread th = null;   //Threadオブジェクトを宣言
+    private final Thread thread = new Thread(this);   //Threadオブジェクトを宣言
 
     public GameFrame(String title){
         //2スーパークラスにタイトルと画面の幅、高さを渡す
@@ -61,18 +59,16 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
         setSize(FRAME_W, FRAME_H);
         setVisible(true);
 
-        myshells = new ArrayList();
-        himshells = new ArrayList();
-
-        ebn = getToolkit().getImage("img/enemy1.png");
+        enemy[0] = getToolkit().getImage("img/enemy1.png");
+        enemy[1] = getToolkit().getImage("img/enemy2.png");
+        enemy[2] = getToolkit().getImage("img/enemy3.png");
         mys = getToolkit().getImage("img/bullet.png");
         his = getToolkit().getImage("img/bullet.png");
 
         //初期状態を整える
         setCondition();
 
-        th = new Thread(this);  //thを生成する
-        th.start();             //run()を実行する
+        thread.start();             //run()を実行する
     }
 
     //背景ちらつき防止
@@ -83,13 +79,10 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
     //初期状態を整える
     void setCondition(){
         //敵のインスタンスを生成
-        for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++)
-            for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++)
-                enemies[i][j] = new Enemy(ebn, (i*60)+(j*10)+25, (j*40)+80);
+        enemies = Enemy.generateEnemies(enemy);
 
         //変数初期化
-        eneMoveRight = true;
-        keyAdmit = true;
+        eneMoveRight = 1;
         mode.resetGameMode();
         player.resetLife();
         enemyNokori = Enemy.ENEMY_HOR_AMOUNT * Enemy.ENEMY_VER_AMOUNT;
@@ -97,8 +90,8 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
         himShellNum = 0;
 
         //弾丸を全て削除
-        myshells.clear();
-        himshells.clear();
+        playerShellList.clear();
+        enemyShellList.clear();
     }
 
     //3paintの代わりにaniPaintを使う
@@ -109,29 +102,11 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             g.drawString("EnterKey を押してゲームをスタートしてください。",80,250);
             g.setFont(new Font("Serif",Font.BOLD,30));
         } else {
-            //自分を描く
-            g.drawImage(player.getImage(), player.getX(), player.getY(), 50, 50, this);
 
-            //敵の群れを描く
-            for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++){
-                for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++){
-                    if(enemies[i][j].getAlive())
-                        g.drawImage(enemies[i][j].getImage(),
-                                enemies[i][j].getX(), enemies[i][j].getY(), 50, 50, this);
-                }
-            }
-
-            //自分の弾丸を描く
-            for(int i = 0; i < myShellNum; i++){
-                ms = (PlayerShell)myshells.get(i);
-                g.drawImage(ms.getImage(), ms.getX(), ms.getY(), 10, 10, this);
-            }
-
-            //敵の弾丸を描く
-            for(int i = 0; i < himShellNum; i++){
-                hs = (EnemyShell)himshells.get(i);
-                g.drawImage(hs.getImage(), hs.getX(), hs.getY(), 10, 10,  this);
-            }
+            player.drawImage(g, this);
+            Enemy.drawImage(g, this, enemies);
+            PlayerShell.drawImage(g, this, playerShellList);
+            EnemyShell.drawImage(g, this, enemyShellList);
 
             //敵の残数を表示
             g.drawString("ステージ："+ stage.getStage() + " / " + stage.maxStage, 10,60);
@@ -142,7 +117,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
                 g.drawString("ゲームクリアです！", 50, 170);
                 g.drawString("Enter で次のステージへ。",80,210);
             }
-            if(mode.getMode() == 3){
+            else if(mode.getMode() == 3){
                 g.drawString("ゲームクリアです！", 50, 170);
                 g.drawString("Enter でタイトルに戻ります。",80,210);
             }
@@ -156,17 +131,17 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
 
 
     public void run(){
-        while(th != null){
+        while (thread != null) {
             
             repaint();
 
             //ゲーム中のときだけ処理
-            if(mode.getMode() == 1)
+            if (mode.getMode() == 1)
                 playingNow();
             
-            try{
+            try {
                 Thread.sleep(30);   //30m秒とめる
-            }catch(InterruptedException e){
+            } catch (InterruptedException ignored) {
             }
         }
     }
@@ -183,6 +158,8 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
     public void windowDeactivated(WindowEvent evt){}
     
     //以下KeyListenerインターフェースのメソッドをオーバーライド
+    public void keyReleased(KeyEvent e){}
+    public void keyTyped(KeyEvent e){}
     public void keyPressed(KeyEvent e){
 
         if(e.getID() == KeyEvent.KEY_PRESSED) {
@@ -211,7 +188,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
                 } else if (cd == KeyEvent.VK_LEFT) {
                     player.addX(-10);
                 } else if (cd == KeyEvent.VK_SPACE) {
-                    myshells.add(new PlayerShell(mys, player.getX()
+                    playerShellList.add(new PlayerShell(mys, player.getX()
                             + (player.getSizeX() / 2) - 1, player.getY() - 15));
                     myShellNum++;
                 }
@@ -221,38 +198,32 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
     }
 
     //ゲーム中の処理
-    void playingNow()
-    {
+    void playingNow() {
         //敵の群れの移動制御
         if(enemies[0][0].getX() < 10 || enemies[0][0].getX() > 50)
-            eneMoveRight = !eneMoveRight;
+            eneMoveRight = -1 * eneMoveRight;
 
         //敵の群れが動く
-        if(eneMoveRight == true){
-            for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++)
-                for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++)
-                    enemies[i][j].addX(1);
-        }else{
-            for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++)
-                for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++)
-                    enemies[i][j].addX(-1);
-        }
+        for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++)
+            for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++)
+                enemies[i][j].addX(eneMoveRight);
+
 
         //自分の弾丸が動く
         for(int i = 0; i < myShellNum; i++){
-            ms = (PlayerShell)myshells.get(i);
-            ms.addY(-10);
+            playerShell = playerShellList.get(i);
+            playerShell.addY(-10);
 
             //弾丸が敵に当たれば、敵＆弾丸死亡
             for(int j = 0; j < Enemy.ENEMY_HOR_AMOUNT; j++){
                 for(int k = 0; k < Enemy.ENEMY_VER_AMOUNT; k++){
-                    if(ms.getX() + ms.getSizeX() >= enemies[j][k].getX()
-                            && ms.getX() <= (enemies[j][k].getX() + enemies[j][k].getSizeX())
-                            && ms.getY() >= (enemies[j][k].getY() - ms.getSizeY())
-                            && ms.getY() <= (enemies[j][k].getY() + enemies[j][k].getSizeY())
+                    if(playerShell.getX() + playerShell.getSizeX() >= enemies[j][k].getX()
+                            && playerShell.getX() <= (enemies[j][k].getX() + enemies[j][k].getSizeX())
+                            && playerShell.getY() >= (enemies[j][k].getY() - playerShell.getSizeY())
+                            && playerShell.getY() <= (enemies[j][k].getY() + enemies[j][k].getSizeY())
                             && enemies[j][k].getAlive()){
                         enemies[j][k].setAlive(false);
-                        ms.setAlive(false);
+                        playerShell.setAlive(false);
                         enemyNokori--;
                     }
                 }
@@ -269,12 +240,12 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             }
 
             //弾丸が外に出たら弾丸死亡
-            if(ms.getY() + ms.getSizeY() < 0)
-                ms.setAlive(false);
+            if(playerShell.getY() + playerShell.getSizeY() < 0)
+                playerShell.setAlive(false);
 
             //死亡した弾丸を配列から削除
-            if(ms.getAlive() == false){
-                myshells.remove(i);
+            if(!playerShell.getAlive()) {
+                playerShellList.remove(i);
                 myShellNum--;
                 i--;
             }
@@ -285,7 +256,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++){
                 if(Enemy.ENEMY_SHOT > (int)(100 * Math.random())
                         && enemies[i][j].getAlive()){
-                    himshells.add(new EnemyShell(his, enemies[i][j].getX()
+                    enemyShellList.add(new EnemyShell(his, enemies[i][j].getX()
                             + (enemies[i][j].getSizeX() / 2), enemies[i][j].getY() + 15));
                     himShellNum++;
                 }
@@ -294,36 +265,30 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
 
         //敵の弾丸が動く
         for(int i = 0; i < himShellNum; i++){
-            hs = (EnemyShell)himshells.get(i);
-            hs.addY(2);
+            enemyShell = enemyShellList.get(i);
+            enemyShell.addY(2);
 
             //弾丸が自分に当たったらゲームオーバー
             //少しくらい掠っても死なないように判定は甘めに調整
-            if(hs.getX() >= (player.getX() - hs.getSizeX())+4
-                    && hs.getX() <= (player.getX() + player.getSizeX())-4
-                    && hs.getY() >= (player.getY() - hs.getSizeY())+10
-                    && hs.getY() <= (player.getY() + player.getSizeY()-2)){
+            if(enemyShell.getX() >= (player.getX() - enemyShell.getSizeX())+4
+                    && enemyShell.getX() <= (player.getX() + player.getSizeX())-4
+                    && enemyShell.getY() >= (player.getY() - enemyShell.getSizeY())+10
+                    && enemyShell.getY() <= (player.getY() + player.getSizeY()-2)){
                 player.decreaseLife();
-                hs.setX(10000);
-                hs.setY(10000);
+                enemyShell.setX(10000);
+                enemyShell.setY(10000);
                 if (player.getLife() == 0) {
                     mode.setMode(4);
                 }
             }
 
             //弾丸が画面外に出たら、配列から削除
-            if(hs.getY() > 550){
-                himshells.remove(i);
+            if(enemyShell.getY() > 550){
+                enemyShellList.remove(i);
                 himShellNum--;
                 i--;
             }
         }
-
-        keyAdmit = true;
         repaint();
     }
-
-    public void keyReleased(KeyEvent e){}
-    public void keyTyped(KeyEvent e){}
-
 }

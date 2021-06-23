@@ -3,7 +3,7 @@ import java.awt.*;
 //自機を表現するクラス
 class Player extends Agent {
 
-    private int maxLife = 5;
+    private final int maxLife = 5;
     private int life = maxLife;
 
     public Player(Image image) {
@@ -14,6 +14,9 @@ class Player extends Agent {
         return this.life;
     }
 
+    /**
+     * ライフを減らす
+     */
     public void decreaseLife() {
         this.life--;
     }
@@ -22,7 +25,20 @@ class Player extends Agent {
         this.life = life;
     }
 
+    /**
+     * ライフをリセットする。
+     */
     public void resetLife() {
         this.life = this.maxLife;
+    }
+
+    /**
+     * 自分を描く
+     *
+     * @param g グラフィックス
+     * @param gameFrame ゲームフレーム
+     */
+    public void drawImage(Graphics g, GameFrame gameFrame) {
+        g.drawImage(getImage(), getX(), getY(), 50, 50, gameFrame);
     }
 }
