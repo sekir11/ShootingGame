@@ -6,17 +6,10 @@ import java.util.ArrayList;
 public class GameFrame extends AnimationFrame implements WindowListener,KeyListener,Runnable{
 
     //ゲームモード。0:タイトル 1:ゲーム中 2:クリア 3:ゲームオーバー
-    int mode;
+    GameMode mode = new GameMode();
 
     int stage = 1;
     int maxStage = 3;
-
-    //敵円盤の数
-    final int ENEMY_HOR_AMOUNT = 8;
-    final int ENEMY_VER_AMOUNT = 4;
-
-    //敵が１ループにおいて弾丸を撃つ確率
-    final int ENEMY_SHOT = 1;
 
     //自機を表現するオブジェクト
     Player player;
@@ -80,7 +73,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
         //自分のインスタンスを生成。aliveを使わない故、最初に１回呼ぶだけ
         player = new Player(jbn);
 
-        enemy = new Enemy[ENEMY_HOR_AMOUNT][ENEMY_VER_AMOUNT];
+        enemy = new Enemy[Enemy.ENEMY_HOR_AMOUNT][Enemy.ENEMY_VER_AMOUNT];
 
         //初期状態を整える
         setCondition();
@@ -97,15 +90,15 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
     //初期状態を整える
     void setCondition(){
         //敵のインスタンスを生成
-        for(int i = 0; i < ENEMY_HOR_AMOUNT; i++)
-            for(int j = 0; j < ENEMY_VER_AMOUNT; j++)
+        for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++)
+            for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++)
                 enemy[i][j] = new Enemy(ebn, (i*60)+(j*10)+25, (j*40)+80);
 
         //変数初期化
         eneMoveRight = true;
         keyAdmit = true;
-        mode = 0;
-        enemyNokori = ENEMY_HOR_AMOUNT * ENEMY_VER_AMOUNT;
+        mode.resetGameMode();
+        enemyNokori = Enemy.ENEMY_HOR_AMOUNT * Enemy.ENEMY_VER_AMOUNT;
         myShellNum = 0;
         himShellNum = 0;
 
@@ -118,7 +111,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
     public void aniPaint(Graphics g){
         g.setColor(Color.WHITE);
 
-        if(mode == 0){
+        if(mode.getMode() == 0){
             g.drawString("EnterKey を押してゲームをスタートしてください。",80,250);
             g.setFont(new Font("Serif",Font.BOLD,30));
         } else {
@@ -126,8 +119,8 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             g.drawImage(player.getImage(), player.getX(), player.getY(), 50, 50, this);
 
             //敵の群れを描く
-            for(int i = 0; i < ENEMY_HOR_AMOUNT; i++){
-                for(int j = 0; j < ENEMY_VER_AMOUNT; j++){
+            for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++){
+                for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++){
                     if(enemy[i][j].getAlive())
                         g.drawImage(enemy[i][j].getImage(),
                                 enemy[i][j].getX(), enemy[i][j].getY(), 50, 50, this);
@@ -151,15 +144,15 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             g.drawString("敵残数："+ enemyNokori, 230,60);
             g.drawString("残りライフ："+ player.getLife(), 400,60);
 
-            if(mode == 2){
+            if(mode.getMode() == 2){
                 g.drawString("ゲームクリアです！", 50, 170);
                 g.drawString("Enter で次のステージへ。",80,210);
             }
-            if(mode == 3){
+            if(mode.getMode() == 3){
                 g.drawString("ゲームクリアです！", 50, 170);
                 g.drawString("Enter でタイトルに戻ります。",80,210);
             }
-            else if(mode == 4){
+            else if(mode.getMode() == 4){
                 g.drawString("ゲームオーバーです。",60,170);
                 g.drawString("Enter でタイトルに戻ります。",90,210);
             }
@@ -174,7 +167,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             repaint();
 
             //ゲーム中のときだけ処理
-            if(mode == 1)
+            if(mode.getMode() == 1)
                 playingNow();
             
             try{
@@ -201,18 +194,18 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
         if(e.getID() == KeyEvent.KEY_PRESSED) {
             if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                 //ゲーム中じゃないとき
-                if (mode == 0) {
-                    mode = 1;
-                } else if (mode == 2) {
+                if (mode.getMode() == 0) {
+                    mode.setMode(1);
+                } else if (mode.getMode() == 2) {
                   stage++;
                   setCondition();
-                  mode=1;
-                } else if (mode == 3 || mode == 4) {
-                    mode = 0;
+                  mode.setMode(1);
+                } else if (mode.getMode() == 3 || mode.getMode() == 4) {
+                    mode.resetGameMode();
                     setCondition();
                 }
             }
-            if (mode == 1) {
+            if (mode.getMode() == 1) {
 
                 int cd = e.getKeyCode();    //押されたキーを取得
                 if (cd == KeyEvent.VK_UP) {
@@ -242,12 +235,12 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
 
         //敵の群れが動く
         if(eneMoveRight == true){
-            for(int i = 0; i < ENEMY_HOR_AMOUNT; i++)
-                for(int j = 0; j < ENEMY_VER_AMOUNT; j++)
+            for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++)
+                for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++)
                     enemy[i][j].addX(1);
         }else{
-            for(int i = 0; i < ENEMY_HOR_AMOUNT; i++)
-                for(int j = 0; j < ENEMY_VER_AMOUNT; j++)
+            for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++)
+                for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++)
                     enemy[i][j].addX(-1);
         }
 
@@ -257,8 +250,8 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             ms.addY(-10);
 
             //弾丸が敵に当たれば、敵＆弾丸死亡
-            for(int j = 0; j < ENEMY_HOR_AMOUNT; j++){
-                for(int k = 0; k < ENEMY_VER_AMOUNT; k++){
+            for(int j = 0; j < Enemy.ENEMY_HOR_AMOUNT; j++){
+                for(int k = 0; k < Enemy.ENEMY_VER_AMOUNT; k++){
                     if(ms.getX() + ms.getSizeX() >= enemy[j][k].getX()
                             && ms.getX() <= (enemy[j][k].getX() + enemy[j][k].getSizeX())
                             && ms.getY() >= (enemy[j][k].getY() - ms.getSizeY())
@@ -274,9 +267,9 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             //敵がいなくなったらクリア
             if(enemyNokori == 0) {
                 if (stage == maxStage) {
-                    mode = 3;
+                    mode.setMode(3);
                 } else {
-                    mode = 2;
+                    mode.setMode(2);
                 }
 
             }
@@ -294,9 +287,9 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
         }
 
         //敵が弾丸を撃つ
-        for(int i = 0; i < ENEMY_HOR_AMOUNT; i++){
-            for(int j = 0; j < ENEMY_VER_AMOUNT; j++){
-                if(ENEMY_SHOT > (int)(100 * Math.random())
+        for(int i = 0; i < Enemy.ENEMY_HOR_AMOUNT; i++){
+            for(int j = 0; j < Enemy.ENEMY_VER_AMOUNT; j++){
+                if(Enemy.ENEMY_SHOT > (int)(100 * Math.random())
                         && enemy[i][j].getAlive()){
                     himshells.add(new EnemyShell(his, enemy[i][j].getX()
                             + (enemy[i][j].getSizeX() / 2), enemy[i][j].getY() + 15));
@@ -320,7 +313,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
                 hs.setX(10000);
                 hs.setY(10000);
                 if (player.getLife() == 0) {
-                    mode = 4;
+                    mode.setMode(4);
                 }
             }
 
