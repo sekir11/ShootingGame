@@ -150,7 +150,7 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
 
         if(e.getID() == KeyEvent.KEY_PRESSED) {
             if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                //ゲーム中じゃないとき
+
                 if (mode.getMode() == 0) {
                     mode.setMode(1);
                 } else if (mode.getMode() == 2) {
@@ -193,7 +193,37 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
                 enemies[i][j].addX(enemies[i][j].changeMoveDirect());
 
 
-        PlayerShell.playersShellMove(playerShellList, enemies);
+        //自分の弾丸が動く
+        for(int i = 0; i < playerShellList.size(); i++){
+            PlayerShell playerShell = playerShellList.get(i);
+            playerShell.addY(-10);
+
+            //弾丸が敵に当たれば、敵＆弾丸死亡
+            for(int j = 0; j < Enemy.ENEMY_HOR_AMOUNT; j++){
+                for(int k = 0; k < Enemy.ENEMY_VER_AMOUNT; k++){
+                    if(playerShell.getX() + playerShell.getSizeX() >= enemies[j][k].getX()
+                            && playerShell.getX() <= (enemies[j][k].getX() + enemies[j][k].getSizeX())
+                            && playerShell.getY() >= (enemies[j][k].getY() - playerShell.getSizeY())
+                            && playerShell.getY() <= (enemies[j][k].getY() + enemies[j][k].getSizeY())
+                            && enemies[j][k].getAlive()){
+                        enemies[j][k].setAlive(false);
+                        playerShell.setAlive(false);
+                        enemyCount--;
+                    }
+                }
+            }
+
+            //弾丸が外に出たら弾丸死亡
+            if(playerShell.getY() + playerShell.getSizeY() < 0)
+                playerShell.setAlive(false);
+
+            //死亡した弾丸を配列から削除
+            if(!playerShell.getAlive()) {
+                playerShellList.remove(i);
+                i--;
+            }
+        }
+
 
         mode.checkComplete(stage);
 
@@ -207,7 +237,29 @@ public class GameFrame extends AnimationFrame implements WindowListener,KeyListe
             }
         }
 
-        EnemyShell.enemyShellsMove(enemyShellList, player);
+        //敵の弾丸が動く
+        for(int i = 0; i < enemyShellList.size(); i++){
+            EnemyShell enemyShell = enemyShellList.get(i);
+            enemyShell.addY(2);
+
+            if(enemyShell.getX() >= (player.getX() - enemyShell.getSizeX())+4
+                    && enemyShell.getX() <= (player.getX() + player.getSizeX())-4
+                    && enemyShell.getY() >= (player.getY() - enemyShell.getSizeY())+10
+                    && enemyShell.getY() <= (player.getY() + player.getSizeY()-2)){
+                player.decreaseLife();
+                enemyShell.setX(10000);
+                enemyShell.setY(10000);
+                if (player.getLife() == 0) {
+                    mode.setMode(4);
+                }
+            }
+
+            //弾丸が画面外に出たら、配列から削除
+            if(enemyShell.getY() > 550){
+                enemyShellList.remove(i);
+                i--;
+            }
+        }
 
         mode.checkGameOver(player);
 
